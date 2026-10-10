@@ -1,0 +1,41 @@
+{{< include _download.qmd >}}
+
+# Extraction
+
+As suggested by the assignment, we decided to extract our corpus from the [Project Gutenberg](https://www.gutenberg.org/). We first selected the authors we wanted to work with, three realists (Balzac, Flaubert and Zola) and three romantics (Dumas, Sand, Sue). We then selected ten books for each author among the ones available on Project Gutenberg. They are the following:
+
+```{python}
+#| label: books-table
+
+from pyspark.sql import Window
+from IPython.display import Markdown
+
+win = Window.partitionBy("author").orderBy("title")
+
+Markdown(
+    books
+    .select("author", "title")
+    .distinct()
+    .withColumn("rank", F.rank().over(win))
+    .groupBy("rank")
+    .pivot("author")
+    .agg(F.coalesce(F.first("title"), F.lit("")))
+    .drop("rank")
+    .toPandas()
+    .to_markdown(index=False)
+)
+```
+
+*Note: Project Gutenberg only have 8 books from Flaubert so to make the comparison fair, we also selected 8 books for Sue. That way, we have a balanced dataset between realists and romantics.*
+
+Each of these books is identified by a unique ID on Project Gutenberg. All the information about the books (title, author, type and ID) is stored in a CSV file that we created ourselves. We then read this CSV file with Spark and download the books in parallel using a UDF. The downloading process itself is done using the [`gutenbergpy` library](https://pypi.org/project/gutenbergpy/), which provides a convenient way to access the books on Project Gutenberg. We used the `get_text_by_id` function to download the raw text of each book.
+
+We chose this library because it is more convenient to use than doing the downloading ourselves with `requests` for example. It also automatically creates a cache of the downloaded books, which can be useful to avoid downloading the same book multiple times during development.
+
+# Load and transform
+
+The previously mentioned `get_text_by_id` function already loads the text by returning a string so we only have to transform it. To do so, we used the `strip_headers` function from the `gutenbergpy` library to remove the Project Gutenberg headers and footers from the text. We then split the text into paragraphs and stored them in a Spark DataFrame. To improve data quality, we also apply light filtering after the split step (empty paragraphs, whitespace-only lines). This helps avoid biasing descriptive statistics with non-linguistic content.
+
+Each row of the DataFrame corresponds to a paragraph of a book. This splitting allows us to work with smaller chunks of text, leveraging Spark's distributed processing capabilities to perform our analyses more efficiently. Finally, splitting by paragraph is a trade-off between context and scalability: paragraphs are long enough to preserve stylistic signals, while remaining small enough to support parallel processing and robust aggregations.
+
+In the end, we have two DataFrames: `books`, with the metadata of the books (title, author, type and ID) and `library` with the paragraphs and the id of the book they belong to. We can then join these two DataFrames to have all the information we need in one place. We save both of them as parquet files to avoid having to redo the downloading and transformation steps during development.

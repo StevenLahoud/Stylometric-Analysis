@@ -1,0 +1,69 @@
+```{python}
+#| label: annotate
+#| output: false
+
+from sparknlp.base import DocumentAssembler, Pipeline, Finisher
+from sparknlp.annotator import (
+    SentenceDetector,
+    Tokenizer,
+    Normalizer,
+    LemmatizerModel
+)
+
+if do_annotation:
+    document = (
+        DocumentAssembler()
+        .setInputCol("paragraph")
+        .setOutputCol("document")
+    )
+
+    sentence_detector = (
+        SentenceDetector()
+        .setInputCols(["document"])
+        .setOutputCol("sentences")
+    )
+
+    tokenizer = (
+        Tokenizer()
+        .setInputCols(["sentences"])
+        .setOutputCol("tokens")
+    )
+
+    normalizer = (
+        Normalizer()
+        .setInputCols(["tokens"])
+        .setOutputCol("normalized")
+        .setLowercase(True)
+    )
+
+    lemmatizer = (
+        LemmatizerModel.pretrained("lemma_gsd", "fr")
+        .setInputCols(["normalized"])
+        .setOutputCol("lemmas")
+    )
+
+    finisher = (
+        Finisher()
+        .setInputCols(["sentences", "normalized", "lemmas"])
+        .setOutputCols(["sentences", "normalized", "lemmas"])
+    )
+
+    pipeline = Pipeline(
+        stages=[
+            document,
+            sentence_detector,
+            tokenizer,
+            normalizer,
+            lemmatizer,
+            finisher
+        ]
+    )
+
+    result = pipeline.fit(library).transform(library)
+else:
+    result = spark.read.parquet(str(annotation_cache))
+
+result = result.repartition(16, "id").persist()
+
+if do_annotation: result.write.parquet(str(annotation_cache))
+```

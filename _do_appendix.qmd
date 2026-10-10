@@ -1,0 +1,27 @@
+```{python}
+#| label: code-listing
+#| output: asis
+
+import re
+from IPython.display import Markdown
+
+# List of files to include
+files_to_read = [
+    '_download.qmd', '_download_text.qmd',
+    '_annotate.qmd', '_annotate_text.qmd',
+    'report.qmd'
+]
+
+pattern = r'```\{python\}([^`]*)```'
+
+for filename in files_to_read:
+    with open(filename, 'r') as f:
+        content = f.read()
+
+    blocks = re.findall(pattern, content, re.DOTALL)
+
+    if blocks:
+        print(f"## {filename}\n")
+        for code in blocks:
+            print(f"```{{.python}}\n{code.strip()}\n```\n")
+```

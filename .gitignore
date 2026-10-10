@@ -1,0 +1,16 @@
+# python stuff
+__pycache__/
+.venv
+/env/
+
+# quarto stuff
+/.quarto/
+/_*.local
+**/*.quarto_ipynb
+**/*.quarto_ipynb*
+
+# our stuff
+.vscode
+_outdir
+texts
+cache

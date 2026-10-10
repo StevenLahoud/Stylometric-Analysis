@@ -1,0 +1,20 @@
+project:
+  title: big-data
+  output-dir: _outdir
+
+author:
+  - Anthony Fernandes
+  - Steven Lahoud
+
+code-line-numbers: true
+execute:
+  warning: false
+  echo: false
+
+format:
+  html:
+    title-block-banner: true
+    toc: true
+    lightbox: true
+  revealjs:
+    lightbox: true

@@ -1,0 +1,30 @@
+{{< include _annotate.qmd >}}
+
+# Annotation pipeline
+
+As required by the assignment, we annotated our corpus with Spark NLP. We used a very standard pipeline for this task, which includes the following stages:
+
+- `DocumentAssembler` to convert the raw text into a format that can be processed by Spark NLP.
+- `SentenceDetector` to split the text into sentences.
+- `Tokenizer` to split the sentences into tokens (words).
+- `Normalizer` to lowercase the tokens and remove punctuation.
+- `LemmatizerModel` to lemmatize the normalized tokens (i.e. reduce them to their base form).
+- `Finisher` to convert the annotated columns back to regular columns that we can use for our analyses.
+
+For the lemmatization stage, we used a pretrained model from Spark NLP, we chose the "lemma_gsd" model which is available for French. This stage is not strictly necessary for the analyses we want to perform in this project but we decided to include it anyway to have a more complete annotation pipeline. It could be useful for more advanced analyses that we might want to do in the future, such as vocabulary richness measures.
+
+Let's look at an example of the output of this pipeline:
+
+```{python}
+#| label: annotation-example
+
+import pandas as pd
+first_row = (
+    result
+    .select(["paragraph", "sentences", "normalized", "lemmas"])
+    .filter(F.size(result.sentences) >= 2)
+    .first()
+    .asDict()
+)
+Markdown(pd.DataFrame([first_row]).to_markdown(index=False))
+```
